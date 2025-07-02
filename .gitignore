@@ -1,0 +1,12 @@
+checkpoints/
+__pycache__/
+*/__pycache__/
+**/__pycache__/
+*.py[cod]
+*.pyo
+*.pt
+*.pth
+.venv/
+env/
+ENV/
+venv/
