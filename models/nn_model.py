@@ -31,3 +31,49 @@ class NNModel(nn.Module):
         x9 = self.fc9(x8)
 
         return x9
+
+class Swish(nn.Module):
+    def forward(self, x):
+        return x * torch.sigmoid(x)
+
+class AutoEncoder(nn.Module):
+    def __init__(self, input_size, output_size, encoding_size=128, dropout=0.3):
+        super(AutoEncoder, self).__init__()
+
+        self.encoder = nn.Sequential(
+            nn.Linear(input_size, input_size // 2),
+            nn.BatchNorm1d(input_size // 2),
+            Swish(),
+            nn.Dropout(dropout),
+            
+            nn.Linear(input_size // 2, input_size // 4),
+            nn.BatchNorm1d(input_size // 4),
+            Swish(),
+            nn.Dropout(dropout),
+            
+            nn.Linear(input_size // 4, encoding_size),
+            nn.BatchNorm1d(encoding_size),
+            Swish()
+        )
+        
+        self.decoder = nn.Sequential(
+            nn.Linear(encoding_size, input_size // 4),
+            nn.BatchNorm1d(input_size // 4),
+            Swish(),
+            nn.Dropout(dropout),
+            
+            nn.Linear(input_size // 4, input_size // 2),
+            nn.BatchNorm1d(input_size // 2),
+            Swish(),
+            nn.Dropout(dropout),
+            
+            nn.Linear(input_size // 2, output_size)
+        )
+        
+    def forward(self, x):
+        encoded = self.encoder(x)
+        decoded = self.decoder(encoded)
+        return encoded, decoded
+    
+    def encode(self, x):
+        return self.encoder(x)
