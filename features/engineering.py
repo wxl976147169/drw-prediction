@@ -1,7 +1,7 @@
 import numpy as np 
 from sklearn.feature_selection import SelectKBest, f_regression
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler, MinMaxScaler
+from sklearn.preprocessing import StandardScaler, MinMaxScaler, RobustScaler
 from sklearn.compose import ColumnTransformer
 
 def feature_engineering(X, Y, valid, base_feature=['bid_qty','ask_qty','buy_qty','sell_qty','volume']) : 
@@ -18,7 +18,7 @@ def feature_engineering(X, Y, valid, base_feature=['bid_qty','ask_qty','buy_qty'
     X_train,X_test,Y_train,Y_test = train_test_split(X, Y, test_size=0.3, random_state=42)
     numeric_cols = [fea for fea in X.columns if X[fea].dtype.kind in 'biufc']
 
-    scaler = MinMaxScaler()
+    scaler = StandardScaler() # MinMaxScaler()
     transformer = ColumnTransformer(transformers =[('standard_scalling' , scaler, numeric_cols),], remainder = 'passthrough')
 
     X_train_tr = transformer.fit_transform(X_train)

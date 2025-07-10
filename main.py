@@ -1,10 +1,10 @@
 import numpy as np
 from data.parquet_load import parquet_load
 from features.engineering import feature_engineering
-from models.nn_model import AutoEncoder
+from models.nn_model import AutoEncoder, AutoEncoder_MLP
 from train.train import train_model
 from evaluate.metrics import evaluation
-from predict.inference import predict
+from predict.inference import predict, predict_w_ml
 import torch
 from sklearn.model_selection import train_test_split
 
@@ -86,32 +86,38 @@ def add_features(df):
     return df
 
 def main(mode):
-    train_path = '/root/autodl-tmp/drw-crypto/input/train_sub199.parquet'
-    test_path = '/root/autodl-tmp/drw-crypto/input/test_sub99.parquet'
+    # train_path = '/root/autodl-tmp/drw-crypto/input_sub199_sub99/train.parquet'
+    # test_path = '/root/autodl-tmp/drw-crypto/input_sub199_sub99/test.parquet'
+    train_path = '/root/autodl-tmp/drw-crypto/train.parquet'
+    test_path = '/root/autodl-tmp/drw-crypto/test.parquet'
     X, Y, valid = parquet_load(train_path, test_path)
     X = add_features(X)
     valid = add_features(valid)
     X_train, Y_train, X_test, Y_test, valid = feature_engineering(X, Y, valid)
-    AE_target_cols = list(X.columns[:5]) + list(X.columns[-58:]) # AutoEncoder只重建业务相关的特征
-    AE_target = X[AE_target_cols]
-    AE_target_len = len(AE_target_cols)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    model = AutoEncoder(input_size=X_train.shape[1], output_size = AE_target_len).to(device)
+    model = AutoEncoder_MLP(input_size=X_train.shape[1], output_size = X_train.shape[1], encoding_size=128).to(device)
 
     if mode == 'train':
         train_model(model, X_train, Y_train, X_test, Y_test, device,
-                    epochs = 500,
-                    batch_size = 8,
-                    lr = 0.0002)
+                    epochs = 2000,
+                    batch_size = 256,
+                    lr = 0.0025)
 
     elif mode == 'predict':
         predict(model, 
                 valid,
-                checkpoint_path = '/root/autodl-tmp/drw_code/checkpoints/model_epoch06_dl_test_loss0.1035.pt', 
-                submission_template_path = '/root/autodl-tmp/drw_code/result/sample_submission_sub99.csv',  
-                output_path = '/root/autodl-tmp/drw_code/result/',  
+                checkpoint_path = '/root/autodl-tmp/drw-prediction/checkpoints/model_epoch1668_test_loss0.1709.pt', 
+                submission_template_path = '/root/autodl-tmp/drw-prediction/result/sample_submission.csv',  
+                output_path = '/root/autodl-tmp/drw-prediction/result/',  
                 device = device, 
-                ml_regressor_path = '/root/autodl-tmp/drw_code/checkpoints/model_epoch06_test_loss0.0421.pkl' )
+                )
+        # predict_w_ml(model, 
+        #         valid,
+        #         checkpoint_path = '/root/autodl-tmp/drw-prediction/checkpoints/model_epoch15_dl_test_loss0.4253.pt', 
+        #         submission_template_path = '/root/autodl-tmp/drw-prediction/result/sample_submission.csv',  
+        #         output_path = '/root/autodl-tmp/drw-prediction/result/',  
+        #         device = device, 
+        #         ml_regressor_path = '/root/autodl-tmp/drw-prediction/checkpoints/model_epoch15_test_loss1.0197.pkl' )
 
 if __name__ == '__main__':
-    main(mode = 'predict')
+    main(mode = 'train')

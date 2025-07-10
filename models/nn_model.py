@@ -46,23 +46,33 @@ class AutoEncoder(nn.Module):
             Swish(),
             nn.Dropout(dropout),
             
-            nn.Linear(input_size // 2, input_size // 4),
+            nn.Linear(input_size // 2, input_size // 3),
+            nn.BatchNorm1d(input_size // 3),
+            Swish(),
+            nn.Dropout(dropout),
+
+            nn.Linear(input_size // 3, input_size // 4),
             nn.BatchNorm1d(input_size // 4),
             Swish(),
             nn.Dropout(dropout),
             
             nn.Linear(input_size // 4, encoding_size),
             nn.BatchNorm1d(encoding_size),
-            Swish()
+            # Swish()
         )
         
         self.decoder = nn.Sequential(
             nn.Linear(encoding_size, input_size // 4),
             nn.BatchNorm1d(input_size // 4),
             Swish(),
+            nn.Dropout(dropout),    
+
+            nn.Linear(input_size // 4, input_size // 3),
+            nn.BatchNorm1d(input_size // 3),
+            Swish(),
             nn.Dropout(dropout),
             
-            nn.Linear(input_size // 4, input_size // 2),
+            nn.Linear(input_size // 3, input_size // 2),
             nn.BatchNorm1d(input_size // 2),
             Swish(),
             nn.Dropout(dropout),
@@ -77,3 +87,73 @@ class AutoEncoder(nn.Module):
     
     def encode(self, x):
         return self.encoder(x)
+
+class MLP(nn.Module):
+    def __init__(self, input_size):
+        super().__init__()
+        self.fc1 = nn.Linear(1*input_size, 2*input_size)
+        self.fc2 = nn.Linear(2*input_size, 4*input_size)
+        self.fc3 = nn.Linear(4*input_size, 2*input_size)
+        self.fc4 = nn.Linear(2*input_size, 1*input_size)
+        self.fc5 = nn.Linear(1*input_size, 1)
+
+        self.dp2 = nn.Dropout(p=0.3)
+        self.dp3 = nn.Dropout(p=0.3)
+        self.dp4 = nn.Dropout(p=0.3)
+
+    def forward(self, x):
+        x1 = torch.sigmoid(self.fc1(x)) 
+        x2 = self.dp2(torch.sigmoid(self.fc2(x1))) 
+        x3 = self.dp3(torch.sigmoid(self.fc3(x2)) + x1) 
+        x4 = self.dp4(torch.sigmoid(self.fc4(x3)) + x)
+        x5 = torch.sigmoid(self.fc5(x4))
+        return x5
+
+class AutoEncoder_MLP(nn.Module):
+    def __init__(self, input_size, output_size, encoding_size=128, dropout=0.3):
+        super(AutoEncoder_MLP, self).__init__()
+
+        self.encoder = nn.Sequential(
+            nn.Linear(input_size, input_size // 2),
+            nn.BatchNorm1d(input_size // 2),
+            Swish(),
+            nn.Dropout(dropout),
+            
+
+            nn.Linear(input_size // 2, input_size // 4),
+            nn.BatchNorm1d(input_size // 4),
+            Swish(),
+            nn.Dropout(dropout),
+            
+            nn.Linear(input_size // 4, encoding_size),
+            nn.BatchNorm1d(encoding_size),
+            Swish()
+        )
+        
+        self.decoder = nn.Sequential(
+            nn.Linear(encoding_size, input_size // 4),
+            nn.BatchNorm1d(input_size // 4),
+            Swish(),
+            nn.Dropout(dropout),    
+
+            
+            nn.Linear(input_size // 4, input_size // 2),
+            nn.BatchNorm1d(input_size // 2),
+            Swish(),
+            nn.Dropout(dropout),
+            
+            nn.Linear(input_size // 2, output_size)
+        )
+        self.mlp = MLP(encoding_size)
+        
+    def forward(self, x):
+        encoded = self.encoder(x)
+        decoded = self.decoder(encoded)
+        preds = self.mlp(encoded)
+        return encoded, decoded, preds
+    
+    def encode(self, x):
+        return self.encoder(x)
+    
+    def preds_w_mlp(self, x) :
+        return self.mlp(self.encoder(x))

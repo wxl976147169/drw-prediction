@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 
-def parquet_load(train_path='/root/Kaggle/drw-crypto-market-prediction/input/train_sub199.parquet', valid_path='/root/Kaggle/drw-crypto-market-prediction/input/test_sub99.parquet'):
+def parquet_load(train_path='/root/autodl-tmp/drw-crypto/train.parquet', valid_path='/root/autodl-tmp/drw-crypto/test.parquet'):
     train = pd.read_parquet(train_path) # 525887
     valid = pd.read_parquet(valid_path) # 538150
 
